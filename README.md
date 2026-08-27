@@ -2,10 +2,13 @@
 
 Install the **@review** Cursor skill globally — all projects, no per-repo git files.
 
-## This laptop (after clone)
+Repo: https://github.com/jaimarbacs-prog/cursor-skills
+
+## Other laptop
 
 ```bash
-cd cursor-review-skill
+git clone https://github.com/jaimarbacs-prog/cursor-skills.git
+cd cursor-skills
 npx --yes . init --ai cursor --global
 ```
 
