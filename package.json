@@ -1,0 +1,22 @@
+{
+  "name": "cursor-review-skill",
+  "version": "1.0.0",
+  "description": "Install the @review Cursor skill globally (no per-project files).",
+  "bin": {
+    "cursor-review-skill": "./bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cursor",
+    "skill",
+    "review",
+    "git-diff"
+  ],
+  "license": "MIT"
+}
