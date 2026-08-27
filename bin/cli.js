@@ -6,38 +6,38 @@ const os = require('os');
 const path = require('path');
 
 const PKG = require('../package.json');
-const TEMPLATES = path.join(__dirname, '..', 'templates', 'review');
-const SKILL_NAME = 'review';
-
-const AI_PATHS = {
-  cursor: ['.cursor', 'skills', SKILL_NAME],
-  claude: ['.claude', 'skills', SKILL_NAME],
-  windsurf: ['.codeium', 'windsurf', 'skills', SKILL_NAME],
-};
+const TEMPLATES_ROOT = path.join(__dirname, '..', 'templates');
+const AI_NAMES = ['cursor', 'claude', 'windsurf'];
 
 function help()
 {
     console.log(`
 ${PKG.name} v${PKG.version}
 
-Install the @review skill globally (all Cursor projects, nothing to git-push).
+Install Cursor skills globally (all projects, nothing extra to git-push).
 
-  npx --yes cursor-review-skill init --ai cursor --global
+  npx --yes . init --ai cursor --global
+
+Skills
+  review       @review / @review -t   (diff safety review)
+  tr           @tr -e / @tr -t        (professional engineering translation)
 
 Commands
-  init         Copy the skill into Cursor (or Claude / Windsurf)
-  uninstall    Remove the installed skill
+  init         Copy skill(s) into Cursor (or Claude / Windsurf)
+  uninstall    Remove the installed skill(s)
   help         Show this help
 
 Options
-  --ai <type>  cursor | claude | windsurf | all     (default: cursor)
-  --global     Install under the home folder (~/)   (recommended)
-  --force      Overwrite if the skill already exists
+  --ai <type>     cursor | claude | windsurf | all     (default: cursor)
+  --skill <name>  review | tr | all                    (default: all)
+  --global        Install under the home folder (~/)   (recommended)
+  --force         Overwrite if the skill already exists
 
 Examples
-  npx --yes cursor-review-skill init --ai cursor --global
-  npx --yes cursor-review-skill init --ai cursor --global --force
-  npx --yes cursor-review-skill uninstall --ai cursor --global
+  npx --yes . init --ai cursor --global
+  npx --yes . init --ai cursor --global --skill tr --force
+  npx --yes . init --ai cursor --global --force
+  npx --yes . uninstall --ai cursor --global --skill tr
 `.trim());
 }
 
@@ -47,6 +47,7 @@ function parse_args(argv)
     const out = {
         command: args[0] || 'help',
         ai: 'cursor',
+        skill: 'all',
         global: false,
         force: false,
     };
@@ -59,6 +60,10 @@ function parse_args(argv)
         else if((a === '--ai' || a === '-a') && args[i + 1])
         {
             out.ai = String(args[++i]).toLowerCase();
+        }
+        else if((a === '--skill' || a === '-s') && args[i + 1])
+        {
+            out.skill = String(args[++i]).toLowerCase();
         }
     }
 
@@ -83,49 +88,109 @@ function remove_dir(dir)
     fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function resolve_targets(ai, is_global)
+function list_skills()
 {
-    const names = ai === 'all' ? Object.keys(AI_PATHS) : [ai];
-    const root = is_global ? os.homedir() : process.cwd();
-
-    return names.map((name) =>
+    if(!fs.existsSync(TEMPLATES_ROOT))
     {
-        const parts = AI_PATHS[name];
-        if(!parts)
-        {
-            throw new Error(`Unknown --ai "${name}". Use: cursor, claude, windsurf, all`);
-        }
-        return { name, dir: path.join(root, ...parts) };
+        throw new Error(`Missing templates at ${TEMPLATES_ROOT}`);
+    }
+
+    return fs.readdirSync(TEMPLATES_ROOT).filter((name) =>
+    {
+        return fs.statSync(path.join(TEMPLATES_ROOT, name)).isDirectory();
     });
+}
+
+function resolve_skills(skill)
+{
+    const available = list_skills();
+    if(skill === 'all') return available;
+    if(!available.includes(skill))
+    {
+        throw new Error(`Unknown --skill "${skill}". Use: ${available.join(', ')}, all`);
+    }
+    return [skill];
+}
+
+function ai_skill_path(ai, skill)
+{
+    if(ai === 'cursor') return ['.cursor', 'skills', skill];
+    if(ai === 'claude') return ['.claude', 'skills', skill];
+    if(ai === 'windsurf') return ['.codeium', 'windsurf', 'skills', skill];
+    return null;
+}
+
+function resolve_targets(ai, skills, is_global)
+{
+    const ais = ai === 'all' ? AI_NAMES : [ai];
+    const root = is_global ? os.homedir() : process.cwd();
+    const targets = [];
+
+    for(const ai_name of ais)
+    {
+        for(const skill of skills)
+        {
+            const parts = ai_skill_path(ai_name, skill);
+            if(!parts)
+            {
+                throw new Error(`Unknown --ai "${ai_name}". Use: cursor, claude, windsurf, all`);
+            }
+            targets.push({
+                name: ai_name,
+                skill,
+                dir: path.join(root, ...parts),
+                src: path.join(TEMPLATES_ROOT, skill),
+            });
+        }
+    }
+
+    return targets;
+}
+
+function hint_after_install(skills)
+{
+    const names = skills.join(', ');
+    if(skills.includes('tr') && skills.includes('review'))
+    {
+        return 'Next: restart Cursor or open a new chat. Type @review for diffs, or @tr -e "text" to translate.';
+    }
+    if(skills.includes('tr'))
+    {
+        return 'Next: restart Cursor or open a new chat, then type @tr -e "your text".';
+    }
+    return `Next: restart Cursor or open a new chat, then type @${names}.`;
 }
 
 function init(opts)
 {
-    if(!fs.existsSync(TEMPLATES))
-    {
-        throw new Error(`Missing templates at ${TEMPLATES}`);
-    }
+    const skills = resolve_skills(opts.skill);
+    const targets = resolve_targets(opts.ai, skills, opts.global);
 
-    const targets = resolve_targets(opts.ai, opts.global);
     for(const t of targets)
     {
+        if(!fs.existsSync(t.src))
+        {
+            throw new Error(`Missing templates at ${t.src}`);
+        }
         if(fs.existsSync(t.dir) && !opts.force)
         {
             console.log(`Exists: ${t.dir}`);
             console.log(`Use --force to overwrite.`);
             continue;
         }
-        copy_dir(TEMPLATES, t.dir);
-        console.log(`Installed (${t.name}${opts.global ? ', global' : ', project'}): ${t.dir}`);
+        copy_dir(t.src, t.dir);
+        console.log(`Installed ${t.skill} (${t.name}${opts.global ? ', global' : ', project'}): ${t.dir}`);
     }
 
     console.log('');
-    console.log('Next: restart Cursor or open a new chat, then type @review and paste a git diff.');
+    console.log(hint_after_install(skills));
 }
 
 function uninstall(opts)
 {
-    const targets = resolve_targets(opts.ai, opts.global);
+    const skills = resolve_skills(opts.skill);
+    const targets = resolve_targets(opts.ai, skills, opts.global);
+
     for(const t of targets)
     {
         if(!fs.existsSync(t.dir))
@@ -134,7 +199,7 @@ function uninstall(opts)
             continue;
         }
         remove_dir(t.dir);
-        console.log(`Removed (${t.name}): ${t.dir}`);
+        console.log(`Removed ${t.skill} (${t.name}): ${t.dir}`);
     }
 }
 
