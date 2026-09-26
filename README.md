@@ -12,6 +12,8 @@ Repo: https://github.com/jaimarbacs-prog/cursor-skills
 | `@review -t` | Same review, Tagalog output |
 | `@tr -e "text"` | Translate / rephrase to **professional software-engineering English** |
 | `@tr -t "text"` | Translate / rephrase to professional Tagalog |
+| `/gs` | Generate a professional English reply from a pasted client question |
+| `@professional-client-communication` | Rewrite informal notes into a short client-ready message |
 
 `@tr` uses a Sider-style technical translation pass: meaning first, then a native rewrite. It is not a word-for-word swap. Identifiers, paths, and code stay as written.
 
@@ -35,7 +37,7 @@ cd cursor-skills
 npx --yes . init --ai cursor --global
 ```
 
-Restart Cursor or open a new chat. Then type `@review` or `@tr -e "..."`.
+Restart Cursor or open a new chat. Then type `@review`, `@tr -e "..."`, or `/gs` plus the client's message.
 
 Update later:
 
@@ -53,12 +55,16 @@ npx --yes . init --ai cursor --global --skill tr --force
 ## What it installs
 
 `~/.cursor/skills/review/`  
-`~/.cursor/skills/tr/`
+`~/.cursor/skills/tr/`  
+`~/.cursor/skills/gs/`  
+`~/.cursor/skills/professional-client-communication/`
 
 Windows:
 
 `%USERPROFILE%\.cursor\skills\review\`  
-`%USERPROFILE%\.cursor\skills\tr\`
+`%USERPROFILE%\.cursor\skills\tr\`  
+`%USERPROFILE%\.cursor\skills\gs\`  
+`%USERPROFILE%\.cursor\skills\professional-client-communication\`
 
 ## Uninstall
 

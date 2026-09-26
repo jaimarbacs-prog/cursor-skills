@@ -21,6 +21,8 @@ Install Cursor skills globally (all projects, nothing extra to git-push).
 Skills
   review       @review / @review -t   (diff safety review)
   tr           @tr -e / @tr -t        (professional engineering translation)
+  gs           /gs                    (professional English client reply)
+  professional-client-communication   (rewrite informal notes for clients)
 
 Commands
   init         Copy skill(s) into Cursor (or Claude / Windsurf)
@@ -29,7 +31,7 @@ Commands
 
 Options
   --ai <type>     cursor | claude | windsurf | all     (default: cursor)
-  --skill <name>  review | tr | all                    (default: all)
+  --skill <name>  review | tr | gs | professional-client-communication | all  (default: all)
   --global        Install under the home folder (~/)   (recommended)
   --force         Overwrite if the skill already exists
 
@@ -152,7 +154,7 @@ function hint_after_install(skills)
     const names = skills.join(', ');
     if(skills.includes('tr') && skills.includes('review'))
     {
-        return 'Next: restart Cursor or open a new chat. Type @review for diffs, or @tr -e "text" to translate.';
+        return 'Next: restart Cursor or open a new chat. Type @review for diffs, @tr -e "text" to translate, or /gs plus a client message.';
     }
     if(skills.includes('tr'))
     {
